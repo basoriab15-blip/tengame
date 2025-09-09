@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Guerra Violenta</title>
+<style>
+  body {margin:0;padding:0;background:black;font-family:Arial;text-align:center;overflow:hidden;color:white;}
+  header {background:rgba(50,50,50,0.9);padding:20px;font-size:32px;font-weight:bold;}
+  canvas {display:block;margin:20px auto;background:#111;border:2px solid white;}
+  .historia {max-width:800px;margin:20px auto;padding:20px;background:rgba(50,50,50,0.8);border-radius:10px;text-align:left;}
+  .historia h2 {text-align:center;}
+</style>
+</head>
+<body>
+<header>Guerra Violenta</header>
+<canvas id="gameCanvas" width="600" height="400"></canvas>
+<div class="historia">
+  <h2>Historia</h2>
+  <p>En un mundo caótico, los jugadores deben enfrentarse a oleadas de enemigos. Cada enemigo eliminado genera un efecto visual intenso, representando el desafío del juego.</p>
+  <h2>Motivación</h2>
+  <p>Supera tus límites, demuestra tu puntería y consigue la máxima puntuación. ¡Solo para mayores de edad!</p>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let player, enemies, particles, score;
+let inMenu = true, gamePaused = false, gameOver = false;
+
+class Player {
+  constructor() {
+    this.x = canvas.width/2;
+    this.y = canvas.height - 40;
+    this.w = 40;
+    this.h = 40;
+    this.speed = 5;
+  }
+  move(dir) {
+    this.x += dir*this.speed;
+    if(this.x< this.w/2) this.x=this.w/2;
+    if(this.x> canvas.width - this.w/2) this.x = canvas.width-this.w/2;
+    if(this.y< this.h/2) this.y=this.h/2;
+    if(this.y> canvas.height - this.h/2) this.y = canvas.height - this.h/2;
+  }
+  show() {
+    ctx.fillStyle = "white";
+    ctx.fillRect(this.x-this.w/2, this.y-this.h/2, this.w, this.h);
+  }
+}
+
+class Enemy {
+  constructor() {
+    this.x = Math.random() * (canvas.width-40)+20;
+    this.y = -20;
+    this.size = 30;
+    this.speed = 2 + Math.random()*2;
+    this.hp = 1;
+  }
+  update() { this.y += this.speed; }
+  show() {
+    ctx.fillStyle = "red";
+    ctx.fillRect(this.x-this.size/2, this.y-this.size/2, this.size, this.size);
+  }
+}
+
+class Particle {
+  constructor(x,y) {
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random()-0.5)*5;
+    this.vy = (Math.random()-0.5)*5;
+    this.life = 30;
+  }
+  update() { this.x += this.vx; this.y += this.vy; this.life--; }
+  show() { ctx.fillStyle="red"; ctx.fillRect(this.x,this.y,4,4); }
+}
+
+function resetGame(){
+  player = new Player();
+  enemies = [];
+  particles = [];
+  score = 0;
+  inMenu = true;
+  gamePaused = false;
+  gameOver = false;
+}
+
+let keys = {};
+document.addEventListener("keydown",(e)=>{ keys[e.key]=true; if(e.key==="p"||e.key==="P"){ if(!inMenu && !gameOver) gamePaused = !gamePaused;} if(e.key===" "){ if(gameOver){ resetGame(); } }});
+document.addEventListener("keyup",(e)=>{ keys[e.key]=false; });
+
+canvas.addEventListener("mousedown", (e)=>{
+  if(inMenu){ inMenu=false; }
+  else if(!gameOver){
+    enemies.forEach((en,i)=>{
+      let rect = canvas.getBoundingClientRect();
+      let mouseX = e.clientX - rect.left;
+      let mouseY = e.clientY - rect.top;
+      if(Math.abs(en.x - mouseX)<en.size/2 && Math.abs(en.y - mouseY)<en.size/2){
+        en.hp--;
+        for(let j=0;j<10;j++) particles.push(new Particle(en.x,en.y));
+        if(en.hp<=0){ enemies.splice(i,1); score++; }
+      }
+    });
+  } else { resetGame(); }
+});
+
+function draw(){
+  ctx.fillStyle="#111";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  if(inMenu){
+    ctx.fillStyle="white";
+    ctx.font="30px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("Guerra Violenta", canvas.width/2, canvas.height/2-40);
+    ctx.font="20px Arial";
+    ctx.fillText("Haz clic para comenzar", canvas.width/2, canvas.height/2);
+    ctx.fillText("Presiona 'P' para pausar/reanudar", canvas.width/2, canvas.height/2+30);
+    requestAnimationFrame(draw);
+    return;
+  }
+
+  if(gamePaused){
+    ctx.fillStyle="yellow";
+    ctx.font="40px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("PAUSA", canvas.width/2, canvas.height/2);
+    ctx.font="20px Arial";
+    ctx.fillText("Presiona 'P' para continuar", canvas.width/2, canvas.height/2+40);
+    requestAnimationFrame(draw);
+    return;
+  }
+
+  if(!gameOver){
+    // movimiento jugador con flechas
+    if(keys["ArrowLeft"]) player.move(-1);
+    if(keys["ArrowRight"]) player.move(1);
+    if(keys["ArrowUp"]) player.move(0,-1);
+    if(keys["ArrowDown"]) player.move(0,1);
+
+    player.show();
+
+    // generar enemigos
+    if(Math.random()<0.02) enemies.push(new Enemy());
+
+    enemies.forEach((e,i)=>{
+      e.update();
+      e.show();
+      if(e.y+e.size/2 >= player.y-player.h/2 && e.x>player.x-player.w/2 && e.x<player.x+player.w/2){ gameOver=true; }
+    });
+
+    particles.forEach((p,i)=>{
+      p.update(); p.show();
+      if(p.life<=0) particles.splice(i,1);
+    });
+
+    ctx.fillStyle="white";
+    ctx.font="24px Arial";
+    ctx.textAlign="left";
+    ctx.fillText("Score: "+score,10,30);
+  } else {
+    ctx.fillStyle="red";
+    ctx.font="48px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2-20);
+    ctx.font="20px Arial";
+    ctx.fillText("Haz clic o ESPACIO para reiniciar", canvas.width/2, canvas.height/2+30);
+  }
+
+  requestAnimationFrame(draw);
+}
+
+resetGame();
+draw();
+</script>
+</body>
+</html>
+
+
+

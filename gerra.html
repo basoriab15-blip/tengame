@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>⚔️ Guerra Medieval</title>
+  <style>
+    body { margin: 0; background: black; overflow: hidden; }
+    canvas { display: block; margin: auto; background: #111; }
+    #titulo {
+      position: absolute; 
+      top: 10px; 
+      left: 50%; 
+      transform: translateX(-50%);
+      color: white; 
+      font-family: Arial, sans-serif; 
+      font-size: 26px; 
+      font-weight: bold;
+    }
+    #historia {
+      color: white;
+      text-align: center;
+      margin: 20px;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+    }
+    #motivacion {
+      color: yellow;
+      text-align: center;
+      margin: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="titulo">⚔️ Guerra Medieval</div>
+  <canvas id="game" width="600" height="400"></canvas>
+
+  <div id="historia">
+    En la época medieval, un caballero se enfrentaba a hordas de enemigos oscuros que invadían su castillo.  
+    Cada victoria lo acercaba más a la paz de su reino, pero al llegar a 100 puntos, un enemigo rojo colosal  
+    aparecía para poner a prueba su valor y su fuerza.
+  </div>
+  <div id="motivacion">
+    Motivación: "¡Que el más pro logre derrotar al jefe rojo y convertirse en el héroe eterno!"
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const player = { x: 300, y: 200, r: 15, speed: 3 };
+    let enemies = [];
+    let score = 0;
+    let gameOver = false;
+    let boss = null;
+    let keys = {};
+
+    // Movimiento con flechas
+    window.addEventListener("keydown", e => { keys[e.code] = true; });
+    window.addEventListener("keyup", e => { keys[e.code] = false; });
+
+    // Spawn de enemigos normales
+    function spawnEnemy() {
+      if (gameOver || boss) return;
+      let angle = Math.random() * Math.PI * 2;
+      let dist = 150 + Math.random() * 100;
+      enemies.push({
+        x: player.x + Math.cos(angle) * dist,
+        y: player.y + Math.sin(angle) * dist,
+        r: 10,
+        hp: 1
+      });
+    }
+
+    // Spawn del jefe
+    function spawnBoss() {
+      boss = { x: Math.random() * 600, y: Math.random() * 400, r: 40, hp: 3 };
+    }
+
+    // Dibujo
+    function draw() {
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Jugador
+      ctx.fillStyle = "cyan";
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Enemigos
+      ctx.fillStyle = "lime";
+      enemies.forEach(e => {
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Jefe
+      if (boss) {
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(boss.x, boss.y, boss.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Puntaje
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText("Puntos: " + score, 10, 25);
+
+      // Game Over
+      if (gameOver) {
+        ctx.fillStyle = "yellow";
+        ctx.font = "30px Arial";
+        ctx.fillText("💀 GAME OVER 💀", 200, 180);
+        ctx.fillText("Clic o ESPACIO para reiniciar", 140, 220);
+      }
+    }
+
+    // Actualizar
+    function update() {
+      if (gameOver) return;
+
+      // Movimiento del jugador con flechas
+      if (keys["ArrowUp"] && player.y - player.r > 0) player.y -= player.speed;
+      if (keys["ArrowDown"] && player.y + player.r < canvas.height) player.y += player.speed;
+      if (keys["ArrowLeft"] && player.x - player.r > 0) player.x -= player.speed;
+      if (keys["ArrowRight"] && player.x + player.r < canvas.width) player.x += player.speed;
+
+      // Enemigos se acercan
+      enemies.forEach(e => {
+        let dx = player.x - e.x;
+        let dy = player.y - e.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 1) {
+          e.x += dx / dist * 0.5;
+          e.y += dy / dist * 0.5;
+        }
+        if (dist < player.r + e.r) gameOver = true;
+      });
+
+      // Jefe se mueve lentamente
+      if (boss) {
+        let dx = player.x - boss.x;
+        let dy = player.y - boss.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 1) {
+          boss.x += dx / dist * 0.3;
+          boss.y += dy / dist * 0.3;
+        }
+        if (dist < player.r + boss.r) gameOver = true;
+      }
+
+      // Aparece el jefe si llega a 100
+      if (score >= 100 && !boss) {
+        enemies = [];
+        spawnBoss();
+      }
+    }
+
+    // Golpe con clic
+    canvas.addEventListener("click", () => {
+      if (gameOver) {
+        resetGame();
+        return;
+      }
+      // Revisar enemigos
+      enemies = enemies.filter(e => {
+        let dx = e.x - player.x;
+        let dy = e.y - player.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 50) { score++; return false; }
+        return true;
+      });
+      // Revisar jefe
+      if (boss) {
+        let dx = boss.x - player.x;
+        let dy = boss.y - player.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 60) {
+          boss.hp--;
+          if (boss.hp <= 0) {
+            score += 10;
+            boss = null;
+            gameOver = true; // victoria
+          }
+        }
+      }
+    });
+
+    // Reinicio con espacio
+    window.addEventListener("keydown", e => {
+      if (e.code === "Space" && gameOver) resetGame();
+    });
+
+    // Reset
+    function resetGame() {
+      score = 0;
+      enemies = [];
+      boss = null;
+      gameOver = false;
+      player.x = 300;
+      player.y = 200;
+    }
+
+    // Loop
+    setInterval(spawnEnemy, 1000);
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+    loop();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

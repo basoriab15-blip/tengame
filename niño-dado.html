@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Niño Dado</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #228B22; /* Fondo verde exterior */
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+    canvas {
+      background: #9ACD32; /* Fondo verde más claro dentro del juego */
+      border: 3px solid #000;
+      display: block;
+    }
+    #historia {
+      margin-top: 10px;
+      font-size: 18px;
+      text-align: center;
+      max-width: 400px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="400" height="400"></canvas>
+  <div id="historia">
+    En este reto, el valiente 🎲 Niño Dado 🎲 debe esquivar todos los obstáculos que se cruzan en su camino.  
+    ¿Podrás superar tu récord y convertirte en el campeón?
+  </div>
+  
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Niño Dado
+    const player = {
+      x: 50,
+      y: 300,
+      width: 30,
+      height: 30,
+      dy: 0,
+      gravity: 0.6,
+      jumpPower: -9,
+      grounded: false
+    };
+
+    let obstacles = [];
+    let frame = 0;
+    let score = 0;
+    let gameOver = false;
+    let paused = false;
+    let started = false;
+
+    // Controles
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        if (!started) {
+          started = true;
+          resetGame();
+        } else if (gameOver) {
+          resetGame();
+        } else {
+          jump();
+        }
+      }
+      if (e.code === "KeyP" && started && !gameOver) {
+        paused = !paused;
+      }
+    });
+
+    document.addEventListener("click", () => {
+      if (!started) {
+        started = true;
+        resetGame();
+      } else if (gameOver) {
+        resetGame();
+      } else {
+        jump();
+      }
+    });
+
+    function jump() {
+      if (player.grounded) {
+        player.dy = player.jumpPower;
+        player.grounded = false;
+      }
+    }
+
+    function resetGame() {
+      obstacles = [];
+      frame = 0;
+      score = 0;
+      player.y = 300;
+      player.dy = 0;
+      player.grounded = false;
+      gameOver = false;
+      paused = false;
+    }
+
+    function update() {
+      if (!started || paused || gameOver) return;
+
+      frame++;
+
+      // Gravedad
+      player.dy += player.gravity;
+      player.y += player.dy;
+
+      // Suelo
+      if (player.y + player.height >= 350) {
+        player.y = 350 - player.height;
+        player.dy = 0;
+        player.grounded = true;
+      }
+
+      // Obstáculos
+      if (frame % 90 === 0) {
+        obstacles.push({
+          x: canvas.width,
+          y: 320,
+          width: 20,
+          height: 30
+        });
+      }
+
+      obstacles.forEach((obstacle, index) => {
+        obstacle.x -= 3; 
+        if (obstacle.x + obstacle.width < 0) {
+          obstacles.splice(index, 1);
+          score++;
+        }
+
+        // Colisión
+        if (
+          player.x < obstacle.x + obstacle.width &&
+          player.x + player.width > obstacle.x &&
+          player.y < obstacle.y + obstacle.height &&
+          player.y + player.height > obstacle.y
+        ) {
+          gameOver = true;
+        }
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Fondo del juego
+      ctx.fillStyle = "#9ACD32";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Título arriba
+      ctx.fillStyle = "black";
+      ctx.font = "20px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("🎲 Niño Dado 🎲", canvas.width / 2, 30);
+
+      // Niño
+      ctx.fillStyle = "white";
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+
+      // Obstáculos
+      ctx.fillStyle = "black";
+      obstacles.forEach((obstacle) => {
+        ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+      });
+
+      // Suelo
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 350, canvas.width, 3);
+
+      // Puntaje
+      ctx.fillStyle = "black";
+      ctx.font = "16px Arial";
+      ctx.textAlign = "left";
+      ctx.fillText("Puntos: " + score, 10, 20);
+
+      // Menú inicio
+      if (!started) {
+        ctx.fillStyle = "black";
+        ctx.font = "20px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("Haz clic o SPACE para comenzar", canvas.width / 2, canvas.height / 2);
+      }
+
+      // Pausa
+      if (paused) {
+        ctx.fillStyle = "black";
+        ctx.font = "24px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("⏸ PAUSA", canvas.width / 2, canvas.height / 2);
+      }
+
+      // Game Over
+      if (gameOver) {
+        ctx.fillStyle = "black";
+        ctx.font = "30px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("💀 GAME OVER 💀", canvas.width / 2, canvas.height / 2);
+        ctx.font = "16px Arial";
+        ctx.fillText("Haz clic o SPACE para reiniciar", canvas.width / 2, canvas.height / 2 + 30);
+      }
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
+</body>
+</html>
+

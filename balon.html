@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Balón Mano ⚽</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #e0f7fa;
+      text-align: center;
+    }
+    h1 {
+      background: #2e7d32;
+      color: white;
+      margin: 0;
+      padding: 15px;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background: #c8e6c9;
+      border: 2px solid black;
+    }
+    #menu {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 22px;
+      text-align: center;
+      flex-direction: column;
+      padding: 20px;
+      cursor: pointer; /* 🔥 el menú ahora es clickeable */
+    }
+    #historia {
+      background: #f1f8e9;
+      padding: 15px;
+      border-top: 2px solid #2e7d32;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Balón Mano ⚽</h1>
+
+  <div id="menu">
+    <p>👉 Haz clic o presiona espacio para jugar</p>
+  </div>
+  
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+  <div id="historia">
+    <p><b>Historia:</b> En un torneo secreto, los jugadores se enfrentan a un árbitro
+    que protege la portería con todas sus fuerzas. Solo el más hábil podrá
+    anotar goles sin ser detenido.</p>
+    <p><b>Motivación:</b> ¡Demuestra que eres el mejor y llega a 10000 goles! 🏆</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const menu = document.getElementById("menu");
+
+    let player, referee, ball, gameRunning = false, goles = 0;
+
+    function resetGame() {
+      player = { x: 50, y: 200, w: 30, h: 30, color: "blue" };
+      referee = { x: 550, y: 150, w: 20, h: 80, color: "red", dy: 4 };
+      ball = { x: player.x + 35, y: player.y + 10, r: 8, dx: 6, dy: 0, active: false };
+    }
+
+    function drawPlayer() {
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+    }
+
+    function drawReferee() {
+      ctx.fillStyle = referee.color;
+      ctx.fillRect(referee.x, referee.y, referee.w, referee.h);
+    }
+
+    function drawBall() {
+      if (ball.active) {
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+        ctx.fillStyle = "black";
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+
+    function drawPorteria() {
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 5;
+      ctx.strokeRect(580, 100, 15, 200);
+    }
+
+    function drawMarcador() {
+      ctx.fillStyle = "black";
+      ctx.font = "20px Arial";
+      ctx.fillText("Goles: " + goles, 20, 30);
+    }
+
+    function moveReferee() {
+      referee.y += referee.dy;
+      if (referee.y <= 100 || referee.y + referee.h >= 300) {
+        referee.dy *= -1;
+      }
+    }
+
+    function moveBall() {
+      if (ball.active) {
+        ball.x += ball.dx;
+        ball.y += ball.dy;
+
+        // choque con árbitro
+        if (
+          ball.x + ball.r > referee.x &&
+          ball.x - ball.r < referee.x + referee.w &&
+          ball.y + ball.r > referee.y &&
+          ball.y - ball.r < referee.y + referee.h
+        ) {
+          alert("¡El árbitro atajó! 🚫");
+          resetGame();
+        }
+
+        // gol
+        if (ball.x > 580 && ball.y > 100 && ball.y < 300) {
+          alert("¡GOOOL! 🎉");
+          goles++;
+          resetGame();
+        }
+
+        // si se va fuera
+        if (ball.x > canvas.width) {
+          alert("Fallaste 😢");
+          resetGame();
+        }
+      }
+    }
+
+    function draw() {
+      if (!gameRunning) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPlayer();
+      drawReferee();
+      drawPorteria();
+      drawBall();
+      drawMarcador();
+      moveReferee();
+      moveBall();
+      requestAnimationFrame(draw);
+    }
+
+    function startGame() {
+      goles = 0;
+      resetGame();
+      menu.style.display = "none";
+      gameRunning = true;
+      draw();
+    }
+
+    // 🔥 ahora clic sobre el menú inicia el juego
+    menu.addEventListener("click", startGame);
+
+    // controles
+    document.addEventListener("keydown", e => {
+      if (e.code === "Space") {
+        if (!gameRunning) {
+          startGame();
+        } else {
+          ball.active = true;
+        }
+      }
+    });
+
+    canvas.addEventListener("click", () => {
+      if (gameRunning) {
+        ball.active = true;
+      }
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+

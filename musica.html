@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Crea Tu Música 🎶</title>
+<style>
+  body {
+    margin:0;
+    padding:0;
+    text-align:center;
+    background:black;
+    color:white;
+    font-family:Arial, sans-serif;
+  }
+  header {
+    font-size:32px;
+    padding:20px;
+    background: rgba(0,0,0,0.7);
+  }
+  canvas {
+    display:block;
+    margin:20px auto;
+    background: #006400; /* Fondo verde del minijuego */
+  }
+  .historia {
+    max-width:800px;
+    margin:20px auto;
+    padding:15px;
+    background: rgba(0,0,0,0.7);
+    border-radius:10px;
+    text-align:left;
+  }
+  .historia h2 {
+    text-align:center;
+    margin-bottom:10px;
+  }
+  .historia p {
+    line-height:1.5;
+  }
+  .motivacion {
+    text-align:center;
+    margin-top:10px;
+    font-size:20px;
+    font-weight:bold;
+    color:#FFD700;
+  }
+</style>
+</head>
+<body>
+<header>Crea Tu Música 🎶</header>
+
+<canvas id="gameCanvas" width="500" height="300"></canvas>
+
+<div class="historia">
+  <h2>Historia del Juego</h2>
+  <p>
+    "Crea Tu Música" nació de la idea de aprender sobre notas musicales
+    y composición de manera divertida. Cada tecla representa una nota
+    y el jugador puede experimentar con ritmos y melodías mientras
+    juega. Es un minijuego que combina entretenimiento con creatividad.
+  </p>
+</div>
+<div class="motivacion">Que el más pro pueda tener la msica mas bonita 🎶🏆</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let inMenu = true;
+let gamePaused = false;
+let score = 0;
+
+const keyWidth = 60;
+const keyHeight = 200;
+const rows = 8;
+
+const notes = [261.63,293.66,329.63,349.23,392.00,440.00,493.88,523.25];
+let keys = [];
+
+for(let i=0;i<rows;i++){
+  keys.push({
+    x: i*keyWidth + 10,
+    y: 50,
+    w: keyWidth-5,
+    h: keyHeight,
+    freq: notes[i],
+    color:`hsl(${i*45},80%,60%)`,
+    active:false
+  });
+}
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playNote(freq){
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.type="sine";
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.2,audioCtx.currentTime);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.5);
+  score++;
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(inMenu){
+    ctx.fillStyle="white";
+    ctx.font="30px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("Crea Tu Música 🎶", canvas.width/2, canvas.height/2-60);
+    ctx.font="20px Arial";
+    ctx.fillText("Haz clic para comenzar", canvas.width/2, canvas.height/2-20);
+    ctx.fillText("Presiona 'P' para pausar/reanudar", canvas.width/2, canvas.height/2+20);
+    requestAnimationFrame(draw);
+    return;
+  }
+
+  // Dibujar teclas
+  keys.forEach(k=>{
+    ctx.fillStyle = k.active ? "white" : k.color;
+    ctx.fillRect(k.x,k.y,k.w,k.h);
+    ctx.strokeStyle="black";
+    ctx.strokeRect(k.x,k.y,k.w,k.h);
+  });
+
+  // Puntaje
+  ctx.fillStyle="white";
+  ctx.font="20px Arial";
+  ctx.textAlign="left";
+  ctx.fillText("Puntuación: "+score,10,30);
+
+  if(gamePaused){
+    ctx.fillStyle="yellow";
+    ctx.font="40px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("Juego Pausado",canvas.width/2,canvas.height/2);
+    ctx.font="20px Arial";
+    ctx.fillText("Presiona 'P' para continuar",canvas.width/2,canvas.height/2 + 30);
+  }
+
+  requestAnimationFrame(draw);
+}
+
+canvas.addEventListener("mousedown",function(e){
+  if(inMenu){ inMenu=false; return; }
+  if(gamePaused) return;
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left;
+  const my=e.clientY-rect.top;
+  keys.forEach(k=>{
+    if(mx>k.x && mx<k.x+k.w && my>k.y && my<k.y+k.h){
+      playNote(k.freq);
+      k.active = true;
+      setTimeout(()=>{ k.active=false; },100);
+    }
+  });
+});
+
+document.addEventListener("keydown",function(e){
+  if(e.key==="p"||e.key==="P") gamePaused=!gamePaused;
+});
+
+draw();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

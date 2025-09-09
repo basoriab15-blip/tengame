@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Nave — Salvar Pimi</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root { --bg:#05040a; --panel-bg: rgba(0,0,0,0.7); --accent:#ffd54f; }
+    html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#fff}
+    .wrap{display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px}
+    h1{margin:0;font-size:28px;color:var(--accent);text-shadow:0 2px 6px rgba(0,0,0,.7)}
+    canvas{background:linear-gradient(#00111a,#000000);border:3px solid #111;display:block}
+    .panel{max-width:900px;background:var(--panel-bg);padding:12px;border-radius:10px}
+    .panel h2{margin:8px 0;color:#fff;text-align:center}
+    .small{font-size:14px;line-height:1.4;color:#ddd}
+    /* responsive */
+    @media (max-width:820px){canvas{width:90%;height:auto}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🚀 Salvar Pimi — La Invasión Alienígena 👾</h1>
+
+    <canvas id="game" width="800" height="520"></canvas>
+
+    <div class="panel">
+      <h2>Historia</h2>
+      <p class="small">
+        El planeta <b>Pimi</b> clama por ayuda: una flota alienígena se aproxima para invadir.
+        Tú controlas la última nave defensora. Muévete por la base, dispara sin piedad y elimina
+        a los invasores antes de que lleguen al suelo. Pimi confía en ti.
+      </p>
+
+      <h2>Motivación</h2>
+      <p class="small"><strong>Que el más pro pueda llegar a 10000</strong></p>
+
+      <p class="small" style="margin-top:8px;color:#ffd">Controles: ← → mover | ESPACIO disparar | P pausar | Haz clic o ESPACIO para comenzar/reiniciar</p>
+    </div>
+  </div>
+
+  <script>
+    // Canvas & context
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const FLOOR_Y = H - 60;
+
+    // Game state
+    let started = false;
+    let paused = false;
+    let gameOver = false;
+    let win = false;
+    let score = 0;
+    let frame = 0;
+
+    // Player ship
+    const ship = {
+      w: 48, h: 22,
+      x: W/2 - 24,
+      y: H - 90,
+      speed: 6,
+      color: '#66ccff'
+    };
+
+    // Bullets
+    const bullets = []; // {x,y,r,v}
+
+    // Aliens grid
+    let aliens = []; // array of {x,y,w,h,alive}
+    let alienCols = 10;
+    let alienRows = 4;
+    let alienW = 44, alienH = 28;
+    let alienGapX = 16, alienGapY = 18;
+    let alienOffsetX = 60, alienOffsetY = 60;
+    let alienDir = 1; // 1 right, -1 left
+    let alienSpeedX = 0.6;
+    let alienDescend = 14;
+
+    // HUD / overlays helpers
+    function drawStars() {
+      // simple starfield (sparse)
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      for (let i=0;i<40;i++){
+        const sx = (i*73 + (frame*0.3)) % W;
+        const sy = (i*37 + (frame*0.1)) % (H-120);
+        ctx.fillRect(sx, sy, 1, 1);
+      }
+    }
+
+    function initAliens() {
+      aliens = [];
+      for (let r=0;r<alienRows;r++){
+        for (let c=0;c<alienCols;c++){
+          const x = alienOffsetX + c*(alienW + alienGapX);
+          const y = alienOffsetY + r*(alienH + alienGapY);
+          aliens.push({x,y,w:alienW,h:alienH,alive:true});
+        }
+      }
+      alienDir = 1;
+      alienSpeedX = 0.6;
+    }
+
+    function resetObjects() {
+      ship.x = W/2 - ship.w/2;
+      bullets.length = 0;
+      score = 0;
+      frame = 0;
+      gameOver = false;
+      win = false;
+      paused = false;
+    }
+
+    function resetFull() {
+      started = false;
+      resetObjects();
+      initAliens();
+    }
+
+    // Collision helpers
+    function rectsIntersect(a,b){
+      return !(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h);
+    }
+    function circleRectIntersect(cx,cy,r,rect){
+      const rx = Math.max(rect.x, Math.min(cx, rect.x + rect.w));
+      const ry = Math.max(rect.y, Math.min(cy, rect.y + rect.h));
+      const dx = cx - rx, dy = cy - ry;
+      return (dx*dx + dy*dy) <= r*r;
+    }
+
+    // Drawing functions
+    function drawBackground(){
+      // gradient already via CSS, paint a subtle grid line for horizon
+      ctx.fillStyle = '#00131a';
+      ctx.fillRect(0,0,W,H);
+      drawStars();
+      // ground/base
+      ctx.fillStyle = '#062226';
+      ctx.fillRect(0, FLOOR_Y, W, H-FLOOR_Y);
+    }
+
+    function drawShip(){
+      ctx.fillStyle = ship.color;
+      roundRect(ctx, ship.x, ship.y, ship.w, ship.h, 6, true, false);
+      // cockpit
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(ship.x + ship.w/2 - 6, ship.y+4, 12, 6);
+    }
+
+    function drawBullets(){
+      ctx.fillStyle = '#ffea00';
+      bullets.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+        ctx.fill();
+      });
+    }
+
+    function drawAliens(){
+      aliens.forEach(a => {
+        if (!a.alive) return;
+        ctx.fillStyle = '#9be563';
+        roundRect(ctx, a.x, a.y, a.w, a.h, 6, true, false);
+        // eyes
+        ctx.fillStyle = '#063';
+        ctx.fillRect(a.x + 8, a.y + 8, 6, 6);
+        ctx.fillRect(a.x + a.w - 14, a.y + 8, 6, 6);
+      });
+    }
+
+    function drawHUD(){
+      ctx.fillStyle = '#fff';
+      ctx.font = '18px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText('Puntos: ' + score, 12, 28);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd54f';
+      ctx.font = '22px Arial';
+      ctx.fillText('🚀 Salvar Pimi 👾', W/2, 28);
+    }
+
+    function drawMenuOverlay(text){
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.font = '28px Arial';
+      ctx.fillText(text, W/2, H/2 - 10);
+      ctx.font = '16px Arial';
+      ctx.fillText('Haz clic o presiona ESPACIO para comenzar. P pausa.', W/2, H/2 + 24);
+    }
+
+    function drawPausedOverlay(){
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.fillRect(W/2 - 140, H/2 - 40, 280, 80);
+      ctx.fillStyle = '#000';
+      ctx.textAlign = 'center';
+      ctx.font = '24px Arial';
+      ctx.fillText('⏸ PAUSA', W/2, H/2);
+    }
+
+    function drawGameOverOverlay(ok){
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = ok? '#a7ffeb' : '#ffccbc';
+      ctx.textAlign = 'center';
+      ctx.font = '28px Arial';
+      ctx.fillText(ok? '¡VICTORIA — Pimi salva!' : '¡GAME OVER!', W/2, H/2 - 10);
+      ctx.font = '16px Arial';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('Haz clic o presiona ESPACIO para reiniciar', W/2, H/2 + 24);
+      ctx.fillText('Puntuación: ' + score, W/2, H/2 + 52);
+    }
+
+    // Utility: rounded rect
+    function roundRect(ctx, x, y, w, h, r, fill, stroke){
+      if (typeof stroke === 'undefined') stroke = true;
+      if (typeof r === 'undefined') r = 5;
+      ctx.beginPath();
+      ctx.moveTo(x+r, y);
+      ctx.arcTo(x+w, y, x+w, y+h, r);
+      ctx.arcTo(x+w, y+h, x, y+h, r);
+      ctx.arcTo(x, y+h, x, y, r);
+      ctx.arcTo(x, y, x+w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    // Game logic
+    function updateAliens(){
+      // determine bounds of alive aliens
+      let minX = Infinity, maxX = -Infinity;
+      aliens.forEach(a => { if (a.alive){ minX = Math.min(minX, a.x); maxX = Math.max(maxX, a.x + a.w); }});
+      if (minX === Infinity) { // all dead -> win
+        win = true;
+        gameOver = true;
+        return;
+      }
+      // move horizontally
+      let willReverse = false;
+      aliens.forEach(a => {
+        if (!a.alive) return;
+        a.x += alienDir * alienSpeedX;
+        if (a.x < 8 || a.x + a.w > W - 8) willReverse = true;
+      });
+      if (willReverse){
+        alienDir *= -1;
+        aliens.forEach(a => { if (a.alive) a.y += alienDescend; });
+      }
+      // check if any reached ground area
+      for (let a of aliens){
+        if (!a.alive) continue;
+        if (a.y + a.h >= FLOOR_Y - 20){
+          gameOver = true;
+          win = false;
+        }
+      }
+    }
+
+    function updateBullets(){
+      for (let i = bullets.length -1; i >= 0; i--){
+        let b = bullets[i];
+        b.y += b.v;
+        // remove offscreen
+        if (b.y < -10) { bullets.splice(i,1); continue; }
+        // test collision with aliens
+        for (let j=0;j<aliens.length;j++){
+          const a = aliens[j];
+          if (!a.alive) continue;
+          if (circleRectIntersect(b.x, b.y, b.r, a)){
+            a.alive = false;
+            score += 10;
+            bullets.splice(i,1);
+            break;
+          }
+        }
+      }
+    }
+
+    function update(){
+      if (!started || paused || gameOver) return;
+      frame++;
+      // ship movement based on keys handled separately
+      updateAliens();
+      updateBullets();
+
+      // small difficulty ramp
+      if (frame % 1200 === 0) alienSpeedX += 0.15;
+    }
+
+    function render(){
+      drawBackground();
+      drawAliens();
+      drawShip();
+      drawBullets();
+      drawHUD();
+
+      if (!started) drawMenuOverlay('Salvar Pimi — Defiende el planeta');
+      if (paused && started && !gameOver) drawPausedOverlay();
+      if (gameOver) drawGameOverOverlay(win);
+    }
+
+    function loop(){
+      update();
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    // Input handling
+    const keys = {};
+    window.addEventListener('keydown', (e) => {
+      keys[e.code] = true;
+      // start / restart with Space
+      if (e.code === 'Space'){
+        if (!started){ resetFull(); started = true; return; }
+        if (gameOver){ resetFull(); started = true; return; }
+        if (!paused) fireBullet();
+      }
+      if (e.code === 'KeyP' && started && !gameOver){ paused = !paused; }
+      if (e.code === 'ArrowLeft') ship.x = Math.max(8, ship.x - ship.speed);
+      if (e.code === 'ArrowRight') ship.x = Math.min(W - ship.w - 8, ship.x + ship.speed);
+    });
+    window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+    canvas.addEventListener('click', (ev) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = ev.clientX - rect.left;
+      // if menu visible start
+      if (!started){ resetFull(); started = true; return; }
+      if (gameOver){ resetFull(); started = true; return; }
+      if (paused) return;
+      // click to shoot
+      fireBullet();
+      // optional: move ship to click x (smooth?)
+      // ship.x = Math.min(W - ship.w - 8, Math.max(8, mx - ship.w/2));
+    });
+
+    function fireBullet(){
+      if (!started || paused || gameOver) return;
+      // limit rate
+      const last = bullets[bullets.length-1];
+      if (last && (frame - (last._frame||-999)) < 8) return; // small fire rate limit
+      const bx = ship.x + ship.w/2;
+      const by = ship.y - 6;
+      const b = { x: bx, y: by, r: 4, v: -8, _frame: frame };
+      bullets.push(b);
+    }
+
+    // initialize
+    resetFull();
+    loop();
+
+    // expose for debug
+    window._resetPimi = resetFull;
+    window._fire = fireBullet;
+  </script>
+</body>
+</html>
+
+
+
+
+
+

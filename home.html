@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tengame</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRjDUTGz41LFm3BZOS6Rh4Suqhsu191Nga0kw&s") no-repeat center center;
+      background-size: cover;
+      text-align: center;
+    }
+
+    header {
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 20px;
+      font-size: 2em;
+      text-shadow: 2px 2px 5px black;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      padding: 30px;
+    }
+
+    .game-card {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 2px 2px 10px black;
+      transition: 0.3s;
+      cursor: pointer;
+    }
+
+    .game-card:hover {
+      transform: scale(1.05);
+      background: white;
+    }
+
+    .game-card h2 {
+      margin: 10px 0;
+      font-size: 1.5em;
+      color: darkblue;
+    }
+
+    .game-card p {
+      font-size: 0.9em;
+      color: black;
+    }
+
+    footer {
+      margin-top: 20px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <header>🎮 tengame 🎮</header>
+
+  <main>
+    <!-- 1 -->
+    <div class="game-card" onclick="location.href='flappy.html'">
+      <h2>🐤 Flapy Pelotón</h2>
+      <p>Versión divertida del clásico Flappy Bird.</p>
+    </div>
+
+    <!-- 2 -->
+    <div class="game-card" onclick="location.href='niño-dado.html'">
+      <h2>👦 Niño Dado</h2>
+      <p>Un juego misterioso con un niño y los dados del destino.</p>
+    </div>
+
+    <!-- 3 -->
+    <div class="game-card" onclick="location.href='balon.html'">
+      <h2>⚽ Balón Mano</h2>
+      <p>Un reto deportivo: controla la pelota y supera a tus rivales.</p>
+    </div>
+
+    <!-- 4 -->
+    <div class="game-card" onclick="location.href='coche.html'">
+      <h2>🚗 Esquivar Coches</h2>
+      <p>Evita los autos en una carretera llena de peligro.</p>
+    </div>
+
+    <!-- 5 -->
+    <div class="game-card" onclick="location.href='alien.html'">
+      <h2>👾 Invasión Alien</h2>
+      <p>Defiende la Tierra del ataque de los extraterrestres.</p>
+    </div>
+
+    <!-- 6 -->
+    <div class="game-card" onclick="location.href='gerra.html'">
+      <h2>⚔️ Lucha Medieval</h2>
+      <p>Combates épicos con estilo de lucha libre medieval.</p>
+    </div>
+
+    <!-- 7 -->
+    <div class="game-card" onclick="location.href='musica.html'">
+      <h2>🎵 Crea tu Música</h2>
+      <p>Convierte tu creatividad en canciones interactivas.</p>
+    </div>
+
+    <!-- 8 -->
+    <div class="game-card" onclick="location.href='pusble.html'">
+      <h2>🧩 Puzzle Master</h2>
+      <p>Resuelve acertijos y pon a prueba tu mente.</p>
+    </div>
+
+    <!-- 9 -->
+    <div class="game-card" onclick="location.href='juguetes.html'">
+      <h2>🪀 Guerra de Juguetes</h2>
+      <p>Los juguetes cobran vida en una batalla inesperada.</p>
+    </div>
+
+    <!-- 10 -->
+    <div class="game-card" onclick="location.href='violencia.html'">
+      <h2>🔞 Violencia Extrema</h2>
+      <p><b>Solo para mayores de edad.</b> Acción intensa y combates brutales.</p>
+    </div>
+  </main>
+
+  <footer>
+    © 2025 Colección de Minijuegos - Creado  en moothry products  </footer>
+</body>
+</html>
+
+

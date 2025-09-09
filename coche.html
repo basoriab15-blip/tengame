@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Niño EsquivaCoches 🚦</title>
+  <style>
+    body { 
+      margin: 0; 
+      background: #000; /* Fondo negro */
+      font-family: Arial, sans-serif; 
+      text-align: center; 
+    }
+    canvas { 
+      background: #111; /* Negro más suave para distinguir */
+      display: block; 
+      margin: 20px auto; 
+      border: 4px solid #fff; /* Blanco para que resalte */
+    }
+    #titulo { 
+      font-size: 28px; 
+      font-weight: bold; 
+      color: white; 
+      margin-top: 10px; 
+    }
+    #historia {
+      font-size: 16px;
+      color: #ccc;
+      margin: 10px;
+    }
+    #motivacion {
+      font-size: 18px;
+      font-weight: bold;
+      color: yellow;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="titulo">Niño EsquivaCoches 🚦</div>
+  <canvas id="gameCanvas" width="400" height="500"></canvas>
+  <div id="historia">📖 Historia: Un niño travieso se metió en la pista y debe esquivar coches que bajan a toda velocidad.</div>
+  <div id="motivacion">💪 Motivación: ¡Que el más pro llegue a 10000 puntos sin chocar! 🏆</div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let player, cars, score, gameOver, paused, gameStarted;
+
+    function initGame() {
+      player = { x: 180, y: 440, width: 40, height: 40, color: "cyan" }; // Azul claro para resaltar
+      cars = [];
+      score = 0;
+      gameOver = false;
+      paused = false;
+      gameStarted = false;
+    }
+
+    initGame();
+
+    function drawPlayer() {
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    function drawCars() {
+      ctx.fillStyle = "red";
+      for (let car of cars) {
+        ctx.fillRect(car.x, car.y, car.width, car.height);
+      }
+    }
+
+    function drawScore() {
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText("Puntos: " + score, 10, 25);
+    }
+
+    function spawnCar() {
+      let x = Math.floor(Math.random() * (canvas.width - 40));
+      cars.push({ x: x, y: -40, width: 40, height: 60 });
+    }
+
+    function updateCars() {
+      for (let car of cars) {
+        car.y += 5;
+        if (car.y > canvas.height) {
+          score++;
+          cars.splice(cars.indexOf(car), 1);
+        }
+        if (player.x < car.x + car.width &&
+            player.x + player.width > car.x &&
+            player.y < car.y + car.height &&
+            player.y + player.height > car.y) {
+          gameOver = true;
+        }
+      }
+    }
+
+    function drawMenu(text) {
+      ctx.fillStyle = "rgba(0,0,0,0.8)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "white";
+      ctx.font = "24px Arial";
+      ctx.fillText(text, 80, 220);
+      ctx.font = "18px Arial";
+      ctx.fillText("Clic o ESPACIO para continuar", 60, 260);
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!gameStarted) {
+        drawMenu("🚦 Niño EsquivaCoches 🚦");
+      } else if (paused) {
+        drawMenu("⏸ Pausa");
+      } else if (gameOver) {
+        drawMenu("💀 Game Over - Puntos: " + score);
+      } else {
+        if (Math.random() < 0.03) spawnCar();
+        updateCars();
+        drawCars();
+        drawPlayer();
+        drawScore();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function resetGame() {
+      initGame();
+      gameStarted = true;
+    }
+
+    // Controles
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        if (!gameStarted) {
+          resetGame();
+        } else if (gameOver) {
+          resetGame();
+        } else {
+          paused = !paused;
+        }
+      }
+      if (e.code === "ArrowLeft" && player.x > 0) player.x -= 40;
+      if (e.code === "ArrowRight" && player.x < canvas.width - player.width) player.x += 40;
+    });
+
+    canvas.addEventListener("click", () => {
+      if (!gameStarted) {
+        resetGame();
+      } else if (gameOver) {
+        resetGame();
+      } else {
+        paused = !paused;
+      }
+    });
+
+    gameLoop();
+  </script>
+</body>
+</html>
+
+
+
+
+
